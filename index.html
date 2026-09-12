@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎌 Anime Hub — Watch Legally</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="hover-bg" id="hoverBg"></div>
+
+<header>
+  <div class="header-top">
+    <h1>🎌 ANIME HUB</h1>
+    <div class="theme-switcher">
+      <button class="theme-btn active" data-theme="dark" title="Dark">🌙</button>
+      <button class="theme-btn" data-theme="light" title="Light">☀️</button>
+      <button class="theme-btn" data-theme="neon" title="Neon">💜</button>
+      <button class="theme-btn" data-theme="sunset" title="Sunset">🌅</button>
+    </div>
+  </div>
+
+  <p>Discover 20,000+ anime. Watch legally. Support the creators.</p>
+  <input type="text" id="searchBox" placeholder="🔍 Search any anime..." />
+
+  <div class="filters">
+    <button class="filter-btn active" data-genre="">All</button>
+    <button class="filter-btn" data-genre="1">Action</button>
+    <button class="filter-btn" data-genre="2">Adventure</button>
+    <button class="filter-btn" data-genre="4">Comedy</button>
+    <button class="filter-btn" data-genre="8">Drama</button>
+    <button class="filter-btn" data-genre="10">Fantasy</button>
+    <button class="filter-btn" data-genre="22">Romance</button>
+    <button class="filter-btn" data-genre="24">Sci-Fi</button>
+    <button class="filter-btn" data-genre="30">Sports</button>
+    <button class="filter-btn" data-genre="37">Supernatural</button>
+  </div>
+</header>
+
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <p>Loading anime...</p>
+</div>
+
+<main>
+  <div class="grid" id="animeGrid"></div>
+  <div class="load-more-wrap">
+    <button id="loadMoreBtn" class="load-more">Load More 🔄</button>
+  </div>
+</main>
+
+<footer>
+  <p>All links redirect to official streaming platforms. We don't host any content.</p>
+  <p class="credit">Made with 🖤 by <span>Umer</span> — The Legend 😎</p>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-content">
+      <img class="modal-cover" id="modalCover" src="" alt="" referrerpolicy="no-referrer" />
+      <div class="modal-info">
+        <h2 id="modalTitle"></h2>
+        <div class="modal-meta">
+          <span id="modalYear"></span>
+          <span id="modalRating"></span>
+          <span id="modalType"></span>
+        </div>
+        <p class="modal-desc" id="modalDesc"></p>
+        <h3 class="modal-watch-title">🎬 Watch on:</h3>
+        <div class="modal-platforms" id="modalPlatforms"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
