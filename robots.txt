@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://goku-umer-0987.github.io/anime-hub/sitemap.xml
