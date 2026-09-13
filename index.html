@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🎌 Anime Hub — Watch Legally</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ff4d6d'/%3E%3Cstop offset='100%25' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23bg)'/%3E%3Ctext x='50' y='72' font-family='Arial' font-size='62' font-weight='900' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -11,57 +12,99 @@
 
 <div class="hover-bg" id="hoverBg"></div>
 
-<header>
-  <div class="header-top">
-    <h1>🎌 ANIME HUB</h1>
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-left">
+    <span class="logo-icon">🎌</span>
+    <span class="logo-text">ANIME HUB</span>
+  </div>
+
+  <div class="nav-search">
+    <input type="text" id="searchBox" placeholder="🔍 Search any anime..." />
+  </div>
+
+  <div class="nav-right">
     <div class="theme-switcher">
-      <button class="theme-btn active" data-theme="dark" title="Dark">🌙</button>
-      <button class="theme-btn" data-theme="light" title="Light">☀️</button>
-      <button class="theme-btn" data-theme="neon" title="Neon">💜</button>
-      <button class="theme-btn" data-theme="sunset" title="Sunset">🌅</button>
+      <button class="theme-btn active" data-theme="dark">🌙</button>
+      <button class="theme-btn" data-theme="light">☀️</button>
+      <button class="theme-btn" data-theme="neon">💜</button>
+      <button class="theme-btn" data-theme="sunset">🌅</button>
     </div>
   </div>
+</nav>
 
-  <p>Discover 20,000+ anime. Watch legally. Support the creators.</p>
-  <input type="text" id="searchBox" placeholder="🔍 Search any anime..." />
-
-  <div class="filters">
-    <button class="filter-btn active" data-genre="">All</button>
-    <button class="filter-btn" data-genre="1">Action</button>
-    <button class="filter-btn" data-genre="2">Adventure</button>
-    <button class="filter-btn" data-genre="4">Comedy</button>
-    <button class="filter-btn" data-genre="8">Drama</button>
-    <button class="filter-btn" data-genre="10">Fantasy</button>
-    <button class="filter-btn" data-genre="22">Romance</button>
-    <button class="filter-btn" data-genre="24">Sci-Fi</button>
-    <button class="filter-btn" data-genre="30">Sports</button>
-    <button class="filter-btn" data-genre="37">Supernatural</button>
+<!-- HERO / FEATURED -->
+<section class="hero" id="heroSection">
+  <div class="hero-content">
+    <span class="hero-badge">🔥 FEATURED</span>
+    <h1 id="heroTitle">Loading...</h1>
+    <p id="heroDesc">Fetching featured anime from the multiverse...</p>
+    <div class="hero-buttons">
+      <button class="btn-watch" id="heroWatch">▶ Watch Now</button>
+      <button class="btn-info" id="heroInfo">ℹ More Info</button>
+    </div>
   </div>
-</header>
+  <div class="hero-image">
+    <img id="heroCover" src="" alt="" referrerpolicy="no-referrer" />
+  </div>
+</section>
 
-<div class="loader" id="loader">
-  <div class="spinner"></div>
-  <p>Loading anime...</p>
+<!-- GENRE FILTERS -->
+<div class="filters">
+  <button class="filter-btn active" data-genre="">All</button>
+  <button class="filter-btn" data-genre="1">Action</button>
+  <button class="filter-btn" data-genre="2">Adventure</button>
+  <button class="filter-btn" data-genre="4">Comedy</button>
+  <button class="filter-btn" data-genre="8">Drama</button>
+  <button class="filter-btn" data-genre="10">Fantasy</button>
+  <button class="filter-btn" data-genre="22">Romance</button>
+  <button class="filter-btn" data-genre="24">Sci-Fi</button>
+  <button class="filter-btn" data-genre="30">Sports</button>
+  <button class="filter-btn" data-genre="37">Supernatural</button>
 </div>
 
+<!-- TRENDING NOW -->
+<section class="trending-section" id="trendingSection">
+  <h2 class="section-title">🔥 Trending Now</h2>
+  <div class="trending-scroll" id="trendingScroll"></div>
+</section>
+
+<!-- MAIN GRID -->
 <main>
+  <h2 class="section-title">✨ Discover Anime</h2>
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Loading anime...</p>
+  </div>
   <div class="grid" id="animeGrid"></div>
   <div class="load-more-wrap">
     <button id="loadMoreBtn" class="load-more">Load More 🔄</button>
   </div>
 </main>
 
+<!-- FOOTER -->
 <footer>
   <p>All links redirect to official streaming platforms. We don't host any content.</p>
   <p class="credit">Made with 🖤 by <span>Umer</span> — The Legend 😎</p>
 </footer>
 
+<!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <button class="modal-close" id="modalClose">✕</button>
+
     <div class="modal-content">
-      <img class="modal-cover" id="modalCover" src="" alt="" referrerpolicy="no-referrer" />
-      <div class="modal-info">
+      <!-- YOUTUBE PLAYER -->
+      <div class="modal-player" id="modalPlayer">
+        <iframe id="youtubePlayer"
+          src=""
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <div class="modal-info-full">
         <h2 id="modalTitle"></h2>
         <div class="modal-meta">
           <span id="modalYear"></span>
@@ -69,7 +112,8 @@
           <span id="modalType"></span>
         </div>
         <p class="modal-desc" id="modalDesc"></p>
-        <h3 class="modal-watch-title">🎬 Watch on:</h3>
+
+        <h3 class="modal-watch-title">🎬 Watch Full Anime (Legal & Free):</h3>
         <div class="modal-platforms" id="modalPlatforms"></div>
       </div>
     </div>

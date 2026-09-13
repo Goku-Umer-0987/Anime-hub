@@ -1,5 +1,5 @@
 // ============================================
-// ANIME HUB — AniList API (Reliable)
+// ANIME HUB — AniList API + YouTube + Legal Platforms
 // ============================================
 
 const API_URL = 'https://graphql.anilist.co';
@@ -8,8 +8,9 @@ let currentPage = 1;
 let currentGenre = '';
 let currentSearch = '';
 let isLoading = false;
+let trendingAnime = [];
 
-// DOM
+// DOM Elements
 const grid = document.getElementById('animeGrid');
 const searchBox = document.getElementById('searchBox');
 const loader = document.getElementById('loader');
@@ -17,9 +18,15 @@ const loadMoreBtn = document.getElementById('loadMoreBtn');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const hoverBg = document.getElementById('hoverBg');
 const themeBtns = document.querySelectorAll('.theme-btn');
+const trendingScroll = document.getElementById('trendingScroll');
+const heroCover = document.getElementById('heroCover');
+const heroTitle = document.getElementById('heroTitle');
+const heroDesc = document.getElementById('heroDesc');
+const heroWatch = document.getElementById('heroWatch');
+const heroInfo = document.getElementById('heroInfo');
+
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
-const modalCover = document.getElementById('modalCover');
 const modalTitle = document.getElementById('modalTitle');
 const modalYear = document.getElementById('modalYear');
 const modalRating = document.getElementById('modalRating');
@@ -27,18 +34,9 @@ const modalType = document.getElementById('modalType');
 const modalDesc = document.getElementById('modalDesc');
 const modalPlatforms = document.getElementById('modalPlatforms');
 
-// Genre mapping (AniList genre names)
 const GENRE_MAP = {
-  '': null,
-  '1': 'Action',
-  '2': 'Adventure',
-  '4': 'Comedy',
-  '8': 'Drama',
-  '10': 'Fantasy',
-  '22': 'Romance',
-  '24': 'Sci-Fi',
-  '30': 'Sports',
-  '37': 'Supernatural'
+  '': null, '1': 'Action', '2': 'Adventure', '4': 'Comedy', '8': 'Drama',
+  '10': 'Fantasy', '22': 'Romance', '24': 'Sci-Fi', '30': 'Sports', '37': 'Supernatural'
 };
 
 // ============================================
@@ -62,76 +60,127 @@ themeBtns.forEach(function (btn) {
 });
 
 // ============================================
-// GRAPHQL QUERY BUILDER
+// HELPERS
 // ============================================
 
-function buildQuery() {
-  const genre = GENRE_MAP[currentGenre] || null;
-
-  const mediaFields = `
-    id
-    title { english romaji }
-    coverImage { large medium }
-    startDate { year }
-    averageScore
-    description
-    episodes
-    format
-    genres
-  `;
-
-  // SEARCH MODE
-  if (currentSearch) {
-    return {
-      query: `
-        query ($search: String, $page: Int) {
-          Page(page: $page, perPage: 24) {
-            pageInfo { hasNextPage currentPage }
-            media(type: ANIME, search: $search, sort: POPULARITY_DESC, isAdult: false) {
-              ${mediaFields}
-            }
-          }
-        }
-      `,
-      variables: { search: currentSearch, page: currentPage }
-    };
-  }
-
-  // GENRE MODE
-  if (genre) {
-    return {
-      query: `
-        query ($genre: String, $page: Int) {
-          Page(page: $page, perPage: 24) {
-            pageInfo { hasNextPage currentPage }
-            media(type: ANIME, genre: $genre, sort: POPULARITY_DESC, isAdult: false) {
-              ${mediaFields}
-            }
-          }
-        }
-      `,
-      variables: { genre: genre, page: currentPage }
-    };
-  }
-
-  // TOP ANIME (default)
-  return {
-    query: `
-      query ($page: Int) {
-        Page(page: $page, perPage: 24) {
-          pageInfo { hasNextPage currentPage }
-          media(type: ANIME, sort: POPULARITY_DESC, isAdult: false) {
-            ${mediaFields}
-          }
-        }
-      }
-    `,
-    variables: { page: currentPage }
-  };
+function getTitle(a) {
+  return (a.title && (a.title.english || a.title.romaji)) || 'Unknown';
+}
+function getCover(a) {
+  return (a.coverImage && (a.coverImage.large || a.coverImage.medium)) || '';
+}
+function getYear(a) {
+  return (a.startDate && a.startDate.year) || 'N/A';
+}
+function getRating(a) {
+  return a.averageScore ? '⭐ ' + (a.averageScore / 10).toFixed(1) : '⭐ N/A';
+}
+function cleanDesc(text) {
+  if (!text) return 'No description available.';
+  return text.replace(/<[^>]*>/g, '').slice(0, 500);
 }
 
 // ============================================
-// FETCH ANIME
+// ANILIST FETCH
+// ============================================
+
+async function anilistFetch(query, variables) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ query: query, variables: variables })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch (err) {
+    console.error('Fetch error:', err);
+    return null;
+  }
+}
+
+const FIELDS = `
+  id
+  title { english romaji }
+  coverImage { large medium }
+  startDate { year }
+  averageScore
+  description
+  episodes
+  format
+`;
+
+// ============================================
+// FEATURED + TRENDING
+// ============================================
+
+async function loadFeaturedAndTrending() {
+  const query = `
+    query {
+      Page(page: 1, perPage: 11) {
+        media(type: ANIME, sort: TRENDING_DESC, isAdult: false) {
+          ${FIELDS}
+        }
+      }
+    }
+  `;
+
+  const json = await anilistFetch(query, {});
+  if (!json || !json.data || !json.data.Page) return;
+
+  const list = json.data.Page.media;
+  if (!list || list.length === 0) return;
+
+  // Featured
+  const featured = list[0];
+  heroCover.src = getCover(featured);
+  heroCover.setAttribute('referrerpolicy', 'no-referrer');
+  heroCover.onerror = function () {
+    this.onerror = null;
+    this.style.background = 'linear-gradient(135deg, #ff4d6d, #a78bfa, #7dd3fc)';
+  };
+  heroTitle.textContent = getTitle(featured);
+  heroDesc.textContent = cleanDesc(featured.description);
+
+  heroWatch.onclick = function () { openModal(featured); };
+  heroInfo.onclick = function () { openModal(featured); };
+
+  // Trending = top 10
+  trendingAnime = list.slice(0, 10);
+  trendingScroll.innerHTML = '';
+  trendingAnime.forEach(function (anime, i) {
+    const card = document.createElement('div');
+    card.className = 'trending-card';
+
+    const img = document.createElement('img');
+    img.src = getCover(anime);
+    img.alt = getTitle(anime);
+    img.loading = 'lazy';
+    img.setAttribute('referrerpolicy', 'no-referrer');
+    img.onerror = function () {
+      this.onerror = null;
+      this.style.background = 'linear-gradient(135deg, #ff4d6d, #a78bfa, #7dd3fc)';
+    };
+
+    const rank = document.createElement('div');
+    rank.className = 'trending-rank';
+    rank.textContent = i + 1;
+
+    const t = document.createElement('div');
+    t.className = 't-title';
+    t.textContent = getTitle(anime);
+
+    card.appendChild(img);
+    card.appendChild(rank);
+    card.appendChild(t);
+    card.addEventListener('click', function () { openModal(anime); });
+
+    trendingScroll.appendChild(card);
+  });
+}
+
+// ============================================
+// FETCH MAIN GRID
 // ============================================
 
 async function fetchAnime() {
@@ -140,24 +189,38 @@ async function fetchAnime() {
   loader.classList.add('active');
 
   try {
-    const body = buildQuery();
+    const genre = GENRE_MAP[currentGenre] || null;
+    let query, variables;
 
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    if (currentSearch) {
+      query = `query ($search: String, $page: Int) {
+        Page(page: $page, perPage: 24) {
+          pageInfo { hasNextPage }
+          media(type: ANIME, search: $search, sort: POPULARITY_DESC, isAdult: false) { ${FIELDS} }
+        }
+      }`;
+      variables = { search: currentSearch, page: currentPage };
+    } else if (genre) {
+      query = `query ($genre: String, $page: Int) {
+        Page(page: $page, perPage: 24) {
+          pageInfo { hasNextPage }
+          media(type: ANIME, genre: $genre, sort: POPULARITY_DESC, isAdult: false) { ${FIELDS} }
+        }
+      }`;
+      variables = { genre: genre, page: currentPage };
+    } else {
+      query = `query ($page: Int) {
+        Page(page: $page, perPage: 24) {
+          pageInfo { hasNextPage }
+          media(type: ANIME, sort: POPULARITY_DESC, isAdult: false) { ${FIELDS} }
+        }
+      }`;
+      variables = { page: currentPage };
+    }
 
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await anilistFetch(query, variables);
 
-    const json = await res.json();
-    const media = json.data.Page.media;
-    const pageInfo = json.data.Page.pageInfo;
-
-    if (!media || media.length === 0) {
+    if (!json || !json.data || !json.data.Page || !json.data.Page.media || json.data.Page.media.length === 0) {
       if (currentPage === 1) {
         grid.innerHTML = '<div class="no-results">😢 No anime found. Try another search.</div>';
       }
@@ -166,20 +229,22 @@ async function fetchAnime() {
       return;
     }
 
+    const media = json.data.Page.media;
+    const hasNext = json.data.Page.pageInfo.hasNextPage;
+
     renderCards(media, currentPage === 1);
 
-    if (pageInfo.hasNextPage) {
+    if (hasNext) {
       loadMoreBtn.disabled = false;
       loadMoreBtn.textContent = 'Load More 🔄';
     } else {
       loadMoreBtn.disabled = true;
       loadMoreBtn.textContent = '✅ All anime loaded';
     }
-
   } catch (err) {
-    console.error('❌ Error:', err);
+    console.error('Error:', err);
     if (currentPage === 1) {
-      grid.innerHTML = '<div class="no-results">⚠️ Failed to load. Please refresh (F5).</div>';
+      grid.innerHTML = '<div class="no-results">⚠️ Failed to load. Please refresh.</div>';
     }
   } finally {
     isLoading = false;
@@ -198,66 +263,42 @@ function renderCards(animeList, clearFirst) {
     const card = document.createElement('div');
     card.className = 'card';
 
-    const title = (anime.title && (anime.title.english || anime.title.romaji)) || 'Unknown';
-    const cover = (anime.coverImage && (anime.coverImage.large || anime.coverImage.medium)) || '';
-    const year = (anime.startDate && anime.startDate.year) || 'N/A';
-    const rating = anime.averageScore ? '⭐ ' + (anime.averageScore / 10).toFixed(1) : '⭐ N/A';
+    const title = getTitle(anime);
+    const cover = getCover(anime);
+    const year = getYear(anime);
+    const rating = getRating(anime);
 
-    // IMAGE
     const img = document.createElement('img');
     img.alt = title;
     img.loading = 'lazy';
     img.setAttribute('referrerpolicy', 'no-referrer');
     if (cover) img.src = cover;
-
     img.onerror = function () {
       this.onerror = null;
       this.removeAttribute('src');
       this.style.background = 'linear-gradient(135deg, #ff4d6d, #a78bfa, #7dd3fc)';
       this.style.minHeight = '280px';
     };
-
     card.appendChild(img);
 
-    // INFO
     const info = document.createElement('div');
     info.className = 'card-info';
-
-    const h3 = document.createElement('h3');
-    h3.textContent = title;
-    h3.title = title;
-
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    meta.innerHTML = '<span>' + year + '</span><span class="rating">' + rating + '</span>';
-
-    const platform = document.createElement('span');
-    platform.className = 'platform';
-    platform.textContent = 'Multiple Platforms';
-
-    info.appendChild(h3);
-    info.appendChild(meta);
-    info.appendChild(platform);
+    info.innerHTML =
+      '<h3>' + title.replace(/</g, '&lt;') + '</h3>' +
+      '<div class="meta"><span>' + year + '</span><span class="rating">' + rating + '</span></div>' +
+      '<span class="platform">Multiple Platforms</span>';
     card.appendChild(info);
 
-    // HOVER
     card.addEventListener('mouseenter', function () {
       if (cover) {
         hoverBg.style.backgroundImage = "url('" + cover + "')";
         hoverBg.classList.add('active');
-        document.body.classList.add('has-hover');
       }
     });
-
     card.addEventListener('mouseleave', function () {
       hoverBg.classList.remove('active');
-      document.body.classList.remove('has-hover');
     });
-
-    // CLICK
-    card.addEventListener('click', function () {
-      openModal(anime);
-    });
+    card.addEventListener('click', function () { openModal(anime); });
 
     grid.appendChild(card);
   });
@@ -269,25 +310,13 @@ function renderCards(animeList, clearFirst) {
 // OPEN MODAL
 // ============================================
 
-function openModal(anime) {
-  const title = (anime.title && (anime.title.english || anime.title.romaji)) || 'Unknown';
-  const cover = (anime.coverImage && (anime.coverImage.large || anime.coverImage.medium)) || '';
-  const year = (anime.startDate && anime.startDate.year) || 'N/A';
-  const rating = anime.averageScore ? '⭐ ' + (anime.averageScore / 10).toFixed(1) : '⭐ N/A';
+async function openModal(anime) {
+  const title = getTitle(anime);
+  const year = getYear(anime);
+  const rating = getRating(anime);
   const type = anime.format ? anime.format.replace(/_/g, ' ') : 'TV';
   const episodes = anime.episodes ? anime.episodes + ' episodes' : '';
-  const desc = anime.description
-    ? anime.description.replace(/<[^>]*>/g, '').slice(0, 500)
-    : 'No description available.';
-
-  // Cover
-  modalCover.setAttribute('referrerpolicy', 'no-referrer');
-  modalCover.onerror = function () {
-    this.onerror = null;
-    this.removeAttribute('src');
-    this.style.background = 'linear-gradient(135deg, #ff4d6d, #a78bfa, #7dd3fc)';
-  };
-  modalCover.src = cover || '';
+  const desc = cleanDesc(anime.description);
 
   modalTitle.textContent = title;
   modalYear.textContent = '📅 ' + year;
@@ -295,29 +324,61 @@ function openModal(anime) {
   modalType.textContent = '📺 ' + type + (episodes ? ' • ' + episodes : '');
   modalDesc.textContent = desc;
 
-  // Platforms
+  // Show modal
+  modalOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // YouTube player
+  const player = document.getElementById('youtubePlayer');
+  if (player) player.src = 'about:blank';
+
+  // Fetch trailer from AniList
+  let trailerId = null;
+  try {
+    const q = `
+      query ($id: Int) {
+        Media(id: $id) {
+          trailer { id site }
+        }
+      }
+    `;
+    const json = await anilistFetch(q, { id: anime.id });
+    if (json && json.data && json.data.Media && json.data.Media.trailer) {
+      const t = json.data.Media.trailer;
+      if (t.site === 'youtube' && t.id) trailerId = t.id;
+    }
+  } catch (err) { console.warn('Trailer fetch failed:', err); }
+
+  if (player) {
+    if (trailerId) {
+      player.src = 'https://www.youtube.com/embed/' + trailerId + '?autoplay=1&rel=0';
+    } else {
+      player.src = 'https://www.youtube.com/embed?listType=search&list=' +
+                   encodeURIComponent(title + ' anime official trailer') + '&autoplay=0';
+    }
+  }
+
+  // ============================================
+  // 8 FREE LEGAL ANIME PLATFORMS
+  // ============================================
   const q = encodeURIComponent(title);
   const platforms = [
+    { name: 'Muse Asia 🎌', icon: '🎌', cls: 'muse', url: 'https://www.youtube.com/@MuseAsia/search?query=' + q },
+    { name: 'Muse India', icon: '🎬', cls: 'muse', url: 'https://www.youtube.com/@MuseIndia/search?query=' + q },
+    { name: 'RetroCrush', icon: '📺', cls: 'hidive', url: 'https://www.retrocrush.tv/search?q=' + q },
+    { name: 'AnimePlanet', icon: '🌐', cls: 'prime', url: 'https://www.anime-planet.com/anime/all?name=' + q },
+    { name: 'Tubi TV', icon: '🟣', cls: 'netflix', url: 'https://tubitv.com/search/' + q },
+    { name: 'Pluto TV', icon: '🔵', cls: 'hulu', url: 'https://pluto.tv/en/search/' + q },
     { name: 'Crunchyroll', icon: '🟠', cls: 'crunchyroll', url: 'https://www.crunchyroll.com/search?q=' + q },
-    { name: 'Netflix', icon: '🔴', cls: 'netflix', url: 'https://www.netflix.com/search?q=' + q },
-    { name: 'Muse Asia', icon: '🔵', cls: 'muse', url: 'https://www.youtube.com/@MuseAsia/search?query=' + q },
-    { name: 'HIDIVE', icon: '🟣', cls: 'hidive', url: 'https://www.hidive.com/search?q=' + q },
-    { name: 'Prime Video', icon: '🟢', cls: 'prime', url: 'https://www.amazon.com/s?k=' + q + '+anime&i=instant-video' },
-    { name: 'Hulu', icon: '🟡', cls: 'hulu', url: 'https://www.hulu.com/search?q=' + q },
-    { name: 'Google', icon: '🔍', cls: 'google', url: 'https://www.google.com/search?q=watch+' + q + '+anime+legally' }
+    { name: 'YouTube Search', icon: '🎥', cls: 'google', url: 'https://www.youtube.com/results?search_query=' + q + '+anime+full+episode' }
   ];
 
   let html = '';
   platforms.forEach(function (p) {
     html += '<a href="' + p.url + '" target="_blank" rel="noopener noreferrer" class="platform-btn ' + p.cls + '">' +
-              '<span class="icon">' + p.icon + '</span>' +
-              '<span>' + p.name + '</span>' +
-            '</a>';
+            '<span class="icon">' + p.icon + '</span><span>' + p.name + '</span></a>';
   });
   modalPlatforms.innerHTML = html;
-
-  modalOverlay.classList.add('active');
-  document.body.style.overflow = 'hidden';
 }
 
 // ============================================
@@ -327,6 +388,8 @@ function openModal(anime) {
 function closeModal() {
   modalOverlay.classList.remove('active');
   document.body.style.overflow = '';
+  const player = document.getElementById('youtubePlayer');
+  if (player) player.src = 'about:blank';
 }
 
 modalClose.addEventListener('click', closeModal);
@@ -383,5 +446,6 @@ loadMoreBtn.addEventListener('click', function () {
 // START
 // ============================================
 
-console.log('🎯 Anime Hub started (AniList API)');
+console.log('🎯 Anime Hub started (AniList + YouTube + Legal Platforms)');
+loadFeaturedAndTrending();
 fetchAnime();
